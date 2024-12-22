@@ -7,7 +7,7 @@ import cv2
 class WebcamPublisher(Node):
     def __init__(self):
         super().__init__('webcam_publisher')
-        self.publisher_ = self.create_publisher(Image, 'webcam_computer', 10)
+        self.publisher_ = self.create_publisher(Image, 'webcam_image', 10)
         self.timer = self.create_timer(0.03, self.timer_callback)  # Calling the timer callback so publishing images at 60 Hz (60 fps)
         self.bridge = CvBridge()
         self.cap = cv2.VideoCapture('/dev/video2')  #Default webcam
