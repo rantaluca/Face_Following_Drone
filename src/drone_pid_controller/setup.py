@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'pid_controller'
+package_name = 'drone_pid_controller'
 
 setup(
     name=package_name,
@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'pid_controller = pid_controller.pid_controller:main',
+            'pid_controller = drone_pid_controller.pid_controller:main',
         ],
     },
 )

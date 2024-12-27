@@ -10,7 +10,7 @@ class WebcamPublisher(Node):
         self.publisher_ = self.create_publisher(Image, '/camera/image_raw', 10)
         self.timer = self.create_timer(0.03, self.timer_callback)  # Calling the timer callback so publishing images at 60 Hz (60 fps)
         self.bridge = CvBridge()
-        self.cap = cv2.VideoCapture('/dev/video2')  #Default webcam
+        self.cap = cv2.VideoCapture('/dev/video1')  #Default webcam
         if not self.cap.isOpened():
             self.get_logger().error('Failed to open webcam.')
 

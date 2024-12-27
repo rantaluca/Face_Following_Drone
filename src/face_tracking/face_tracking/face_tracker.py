@@ -6,6 +6,8 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PointStamped
 import cv2
+import numpy as np
+
 
 class FaceTrackerNode(Node):
     def __init__(self):
@@ -23,17 +25,22 @@ class FaceTrackerNode(Node):
             10
         )
 
-        self.wanted_face_size = 90.0
+        self.wanted_face_size = 100.0
 
         self.tracked_faces_publisher_ = self.create_publisher(Image, 'tracked_faces', 10)
         self.target_point_publisher_ = self.create_publisher(PointStamped, 'target_point', 10)
         self.center_point_publisher_ = self.create_publisher(PointStamped, 'camera_centers', 10)
         self.get_logger().info("Face Tracker Node has started")
+        
+        # Ar uco
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_ARUCO_ORIGINAL )
+        self.parameters = cv2.aruco.DetectorParameters()
 
     def image_callback(self, msg):
         try:
             #  ROS2 Image message to OpenCV image
             frame = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+            frame_height, frame_width, _ = frame.shape
             #frame = cv2.flip(frame, 1)  # Flip horizontally 
             center_point = PointStamped()
             center_point.header = msg.header
@@ -45,39 +52,81 @@ class FaceTrackerNode(Node):
         except Exception as e:
             self.get_logger().error(f"Failed to convert image: {e}")
             return
+    
 
         # Convertion to grayscale (needed for face detection)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # Calling the OpenCV face detector
-        faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+        #faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
         
-        if len(faces)>0:
-            # search for the face with the largest area
+        #Remplaced face tracking by an urco tga id:227 for now
+        corners, ids, rejected = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=self.parameters)
+        if ids is not None:
+            for i, marker_id in enumerate(ids):
+                if marker_id[0] == 227:  # Check for the specific marker ID
+                    print(f"Marker with ID {marker_id[0]} found")
+                    marker_corners = corners[i][0]  # Shape (1, 4, 2) to 4 corners with (x, y) coords
+                    print(marker_corners)
+                    
+                    # width and height calclulation 
+                    w = float(np.linalg.norm(marker_corners[0] - marker_corners[1]))  # Distance top-left and top-right
+                    h = float(np.linalg.norm(marker_corners[1] - marker_corners[2])) # Distance  top-right and bottom-right
+                    
+                    # center calculation 
+                    x = float(np.mean(marker_corners[:, 0]))
+                    y = float(np.mean(marker_corners[:, 1]))
+                    
+                    print(f"Width: {w:.2f} px, Height: {h:.2f} px")
 
-            choosen_face = faces[0]
-            for (x, y, w, h) in faces:
-                if w*h > choosen_face[2]*choosen_face[3]:
-                    choosen_face = (x, y, w, h)
-            x, y, w, h = choosen_face
 
-            #center of the image
-            cv2.circle(frame, (frame.shape[1]//2, frame.shape[0]//2), 3, (0, 255, 0), 2)
-            #center of the face
-            cv2.circle(frame, (x+w//2, y+h//2), 3, (0, 0, 255), 2)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-            #vector from the center of the image to the center of the face
-            cv2.arrowedLine(frame, (frame.shape[1]//2, frame.shape[0]//2), (x+w//2, y+h//2), (0, 255, 0), 2)
+                    #center of the image
+                    cv2.circle(frame, (frame.shape[1]//2, frame.shape[0]//2), 3, (0, 255, 0), 2)
+                    #center of the face
+                    cv2.circle(frame, (int(x), int(y)), 3, (0, 0, 255), 2)
+                    cv2.rectangle(frame, (int(x - w/2), int(y - h / 2)), (int(x + w/2), int(y + h/2)), (255, 0, 0), 2)
+                    #vector from the center of the image to the center of the face
+                    cv2.arrowedLine(frame, (int(frame.shape[1]/2), int(frame.shape[0]/2)), (int(x), int(y)), (0, 255, 0), 2)
 
-            frame_height, frame_width, _ = frame.shape
+                    point_message = PointStamped()
+                    point_message.header = msg.header
+                    point_message.point.x = float(h)
+                    point_message.point.y = float(x) #+ w/2
+                    point_message.point.z = float(frame_height - y) #+ h/2  
+                    self.get_logger().info(f"Face detected at ({point_message.point.x}, {point_message.point.y}, {point_message.point.z})")
+                    self.target_point_publisher_.publish(point_message)
+                    break
+                    
+                else:
+                    print(f"Marker with ID {marker_id[0]} ignored")
+        else:
+            print("No markers found")
 
-            point_message = PointStamped()
-            point_message.header = msg.header
-            point_message.point.x = float(h)
-            point_message.point.y = x + w/2
-            point_message.point.z = frame_height - y + h/2  
-            self.get_logger().info(f"Face detected at ({point_message.point.x}, {point_message.point.y}, {point_message.point.z})")
-            self.target_point_publisher_.publish(point_message)
+        #Face detecting 
+        # if len(faces)>0:
+        #     # search for the face with the largest area
+
+        #     choosen_face = faces[0]
+        #     for (x, y, w, h) in faces:
+        #         if w*h > choosen_face[2]*choosen_face[3]:
+        #             choosen_face = (x, y, w, h)
+        #     x, y, w, h = choosen_face
+
+        #     #center of the image
+        #     cv2.circle(frame, (frame.shape[1]//2, frame.shape[0]//2), 3, (0, 255, 0), 2)
+        #     #center of the face
+        #     cv2.circle(frame, (x+w//2, y+h//2), 3, (0, 0, 255), 2)
+        #     cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        #     #vector from the center of the image to the center of the face
+        #     cv2.arrowedLine(frame, (frame.shape[1]//2, frame.shape[0]//2), (x+w//2, y+h//2), (0, 255, 0), 2)
+
+        #     point_message = PointStamped()
+        #     point_message.header = msg.header
+        #     point_message.point.x = float(h)
+        #     point_message.point.y = x + w/2
+        #     point_message.point.z = frame_height - y + h/2  
+        #     self.get_logger().info(f"Face detected at ({point_message.point.x}, {point_message.point.y}, {point_message.point.z})")
+        #     self.target_point_publisher_.publish(point_message)
         
         # Converting back to ROS2 Image message
         image_msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')    

@@ -51,7 +51,7 @@ def generate_launch_description():
         ################ PID controller ################
 
         Node(
-            package='pid_controller',  
+            package='drone_pid_controller',  
             executable='pid_controller',  
         ),
         #Pid plots
