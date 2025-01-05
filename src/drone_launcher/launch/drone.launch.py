@@ -69,4 +69,11 @@ def generate_launch_description():
         ################ Landing and takeoff ################
         takeoff_process,  
         land_event_handler,
+
+        ############### Speech Engine ######################
+
+        Node(
+            package='speech_engine',  
+            executable='speech_service',  
+        ),
     ])

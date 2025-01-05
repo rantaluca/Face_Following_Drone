@@ -40,11 +40,11 @@ class PidCmdVelNode(Node):
         # self.ki = 0.05
         # self.kd = 0.001
 
-        self.kp_x = 0.02
-        self.ki_x = 0.003
-        self.kd_x = 0.0001
+        self.kp_x = 0.002
+        self.ki_x = 0.0003
+        self.kd_x = 0.00001
 
-        self.kp_y = 0.02
+        self.kp_y = 1.5
         self.ki_y = 0.005
         self.kd_y = 0.0001
 
@@ -77,7 +77,7 @@ class PidCmdVelNode(Node):
 
         # Normalizing error
         error_x = (self.center_point.point.x - msg.point.x)/self.center_point.point.x if self.center_point.point.x != 0 else 0.0
-        error_y = (-self.center_point.point.y + msg.point.y)/self.center_point.point.y if self.center_point.point.y != 0 else 0.0
+        error_y = (self.center_point.point.y - msg.point.y)/self.center_point.point.y if self.center_point.point.y != 0 else 0.0
         error_z = (-self.center_point.point.z + msg.point.z)/self.center_point.point.z if self.center_point.point.y != 0 else 0.0
         print(f"Error: {error_x}, {error_y}, {error_z}")
 
@@ -106,15 +106,15 @@ class PidCmdVelNode(Node):
         twist_msg = Twist()
         if (abs(error_x) > 0.1):
             forward_vel = proportional_x + self.integral_x + derivative_x 
-            forward_vel = max(min(forward_vel*100.0, 100.0), -100.0)  # Clamping to [-100, 100]
+            forward_vel = max(min(forward_vel*5.0, 5.0), -5.0)  # Clamping to [-100, 100]
             twist_msg.linear.x = forward_vel
         if (abs(error_y) > 0.1):
             angular_vel = proportional_y + self.integral_y + derivative_y
-            angular_vel = max(min(angular_vel*1.0, 1.0), -1.0)  # Clamping to angular range [-1, 1] 
+            angular_vel = max(min(angular_vel*5.0, 5.0), -5.0)  # Clamping to angular range [-1, 1] 
             twist_msg.angular.z = angular_vel
         if (abs(error_z) > 0.1):
             height_vel = proportional_z + self.integral_z + derivative_z
-            height_vel = max(min(height_vel*100.0, 100.0), -100.0)  # Clamp same way as x
+            height_vel = max(min(height_vel*5.0, 5.0), -5.0)  # Clamp same way as x
             twist_msg.linear.z = height_vel
 
         self.twist_publisher.publish(twist_msg)
