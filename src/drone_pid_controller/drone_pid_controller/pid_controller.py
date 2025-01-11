@@ -40,17 +40,17 @@ class PidCmdVelNode(Node):
         # self.ki = 0.05
         # self.kd = 0.001
 
-        self.kp_x = 0.002
-        self.ki_x = 0.0003
+        self.kp_x = 0.04
+        self.ki_x = 0.003
         self.kd_x = 0.00001
 
-        self.kp_y = 1.5
+        self.kp_y = 0.4
         self.ki_y = 0.005
         self.kd_y = 0.0001
 
-        self.kp_z = 0.005
+        self.kp_z = 0.01
         self.ki_z = 0.0001
-        self.kd_z = 0.000001
+        self.kd_z = 0.0000001
 
         self.previous_time = self.get_clock().now()
 
@@ -78,7 +78,7 @@ class PidCmdVelNode(Node):
         # Normalizing error
         error_x = (self.center_point.point.x - msg.point.x)/self.center_point.point.x if self.center_point.point.x != 0 else 0.0
         error_y = (self.center_point.point.y - msg.point.y)/self.center_point.point.y if self.center_point.point.y != 0 else 0.0
-        error_z = (-self.center_point.point.z + msg.point.z)/self.center_point.point.z if self.center_point.point.y != 0 else 0.0
+        error_z = (self.center_point.point.z - msg.point.z)/self.center_point.point.z if self.center_point.point.y != 0 else 0.0
         print(f"Error: {error_x}, {error_y}, {error_z}")
 
         error_message = PointStamped()
